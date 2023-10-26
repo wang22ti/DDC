@@ -81,33 +81,6 @@ def main():
     args.store_name = os.path.join(store_dir, args.store_name)
 
     prepare_folders(args)
-
-    ##### setup resume #####
-    resume_path = os.path.join(args.root_model, args.store_name, '{}_ckpt.pth.tar'.format(args.epochs))
-    if os.path.exists(resume_path):
-        sys.exit()
-    
-    flag = False
-    if args.train_rule == 'DRW':
-        store_dir_list[3] = 'None'
-        flag = True
-
-    # if args.tro != 0.05:
-    #     store_name_list[-1] = str((0.05, args.gamma, args.tau))
-    #     store_dir_list[3] = 'None'
-    #     flag = True
-    # if args.rho[0] != args.rho[1]:
-    #     store_name_list[3] = '[{}, {}]'.format(args.rho[0], args.rho[0])
-    #     store_dir_list[3] = args.train_rule
-    #     flag = True
-    if flag:
-        store_dir = '_'.join(store_dir_list)
-        resume_path = '_'.join(store_name_list)
-        resume_path = os.path.join(args.root_model, store_dir, resume_path, '{}_ckpt.pth.tar'.format(args.t_reweight))
-        if os.path.exists(resume_path):
-            args.resume = resume_path
-    ##### setup resume #####
-
     setup_seed(args.seed)
     main_worker(args)
 
