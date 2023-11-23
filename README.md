@@ -18,7 +18,7 @@ Pleas refer to the `bash_script.sh` in the root folder.
 
 ### CIFAR-100
 
-- 400 Epochs with SAM and RandAug
+- 400 Epochs with tuned wd, SAM, and RandAug
 
 | | LT ($\rho=100$)  | LT ($\rho=10$)  | Step ($\rho=100$)  | Step ($\rho=10$) |
 |  ----  | ----  | ----  | ----  | ----  |
@@ -31,14 +31,14 @@ Pleas refer to the `bash_script.sh` in the root folder.
 
 ### CIFAR-10
 
-- 400 Epochs with SAM and RandAug
+- 400 Epochs with tuned wd, SAM, and RandAug
 
 | | LT ($\rho=100$)  | LT ($\rho=10$)  | Step ($\rho=100$)  | Step ($\rho=10$) |
 |  ----  | ----  | ----  | ----  | ----  |
 | CE | 79.75 ± 0.46 | 90.79 ± 0.04 | 70.13 ± 0.32  | 88.63 ± 0.22 |
 | LDAM + DRW | 86.15 ± 0.16 | 91.17 ± 0.10 | 84.48 ± 0.38  | 91.20 ± 0.04 |
 | VS | 86.29 ± 0.13 | 91.75 ± 0.09 | 85.04 ± 0.16 | 91.68 ± 0.08 |
-| VS + ADRW + TLA (Ours) | **86.35 ± 0.10** | **91.81 ± 0.16** | **85.55 ± 0.22**  | **91.80 ± 0.04** |
+| VS + ADRW + TLA (Ours) | **86.42 ± 0.10** | **91.82 ± 0.16** | **85.55 ± 0.22**  | **91.80 ± 0.04** |
 
 <!-- - 200 Epochs w/o SAM and RandAug -->
 
