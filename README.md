@@ -4,7 +4,7 @@ This is a Pytorch implementation of our NeurIPS 2023 Spotlight paper: [A Unified
 
 > **Abstract:** Real-world datasets are typically imbalanced in the sense that only a few classes have numerous samples, while many classes are associated with only a few samples. As a result, a naïve ERM learning process will be biased towards the majority classes, making it difficult to generalize to the minority classes. To address this issue, one simple but effective approach is to modify the loss function to emphasize the learning on minority classes, such as re-weighting the losses or adjusting the logits via class-dependent terms. However, existing generalization analysis of such losses is still coarse-grained and fragmented, failing to explain some empirical results. To bridge this gap, we propose a novel technique named data-dependent contraction to capture how these modified losses handle different classes. On top of this technique, a fine-grained generalization bound is established for imbalanced learning, which helps reveal the mystery of re-weighting and logit-adjustment in a unified manner. Furthermore, a principled learning algorithm is developed based on the theoretical insights. Finally, the empirical results on benchmark datasets not only validate the theoretical results but also demonstrate the effectiveness of the proposed method.
 
-Our codes are based on the repositories [Escaping Saddle Points for Effective Generalization on Class-Imbalanced Data](https://github.com/val-iisc/saddle-longtail).
+Our codes are based on the repositories [Escaping Saddle Points for Effective Generalization on Class-Imbalanced Data](https://github.com/val-iisc/saddle-longtail), and we have improved the reproducibility.
 
 ## Dependencies
 
@@ -33,7 +33,7 @@ Pleas refer to the `bash_script.sh` in the root folder.
 |  ----  | ----  | ----  | ----  | ----  |
 | CE | 45.00 ± 0.39 | 58.80 ± 0.24 |  38.91 ± 0.05 | 54.56 ± 0.13 |
 | LDAM + DRW | 45.44 ± 0.06 | 58.31 ± 0.32 | 46.41 ± 0.28 | 57.14 ± 0.23 |
-| VS | 46.26 ± 0.31 | 65.23 ± 0.24 | 46.74 ± 0.47 | 61.02 ± 0.31 |
+| VS | 46.26 ± 0.31 | 61.11 ± 0.26 | 46.74 ± 0.47 | 61.02 ± 0.31 |
 | VS + ADRW + TLA (Ours) | **46.29 ± 0.50** | **61.32 ± 0.24** | **47.75 ± 0.31** | **61.38 ± 0.35** |
 
 ### CIFAR-10
