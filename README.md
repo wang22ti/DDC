@@ -28,6 +28,7 @@ Pleas refer to the `bash_script.sh` in the root folder.
 | VS + ADRW + TLA (Ours) | **53.05 ± 0.12** | **65.59 ± 0.28** | **51.69 ± 0.29** | **64.98 ± 0.13** |
 
 - 200 Epochs with tuned wd
+
 | | LT ($\rho=100$)  | LT ($\rho=10$)  | Step ($\rho=100$)  | Step ($\rho=10$) |
 |  ----  | ----  | ----  | ----  | ----  |
 | CE | 45.00 ± 0.39 | 58.80 ± 0.24 |  38.91 ± 0.05 | 54.56 ± 0.13 |
@@ -47,6 +48,7 @@ Pleas refer to the `bash_script.sh` in the root folder.
 | VS + ADRW + TLA (Ours) | **86.42 ± 0.10** | **91.82 ± 0.16** | **85.55 ± 0.22**  | **91.80 ± 0.04** |
 
 - 200 Epochs with tuned wd
+
 | | LT ($\rho=100$)  | LT ($\rho=10$)  | Step ($\rho=100$)  | Step ($\rho=10$) |
 |  ----  | ----  | ----  | ----  | ----  |
 | CE | 73.39 ± 0.30 | 87.43 ± 0.22 |  66.20 ± 0.36 | 85.57 ± 0.11 |
