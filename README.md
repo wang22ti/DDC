@@ -12,7 +12,7 @@ Please refer to the `requirements.yml` in the root folder.
 
 ## Scripts
 
-Pleas refer to the `bash_script.sh` in the root folder.
+Pleas refer to the `bash_script.sh` in the root folder, where the scrpts can reproduce the results under the setting `400 Epochs with tuned wd, SAM, and RandAug` (see below).
 
 ## Results
 
