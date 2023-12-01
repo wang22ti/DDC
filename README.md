@@ -1,6 +1,6 @@
 # A Unified Generalization Analysis of Re-Weighting and Logit-Adjustment for Imbalanced Learning
 
-This is a Pytorch implementation of our NeurIPS 2023 Spotlight paper: [A Unified Generalization Analysis of Re-Weighting and Logit-Adjustment for Imbalanced Learning](https://arxiv.org/abs/2310.04752). We list the ranking of our method as follows. If we ignore the ones with ensemble, non-standard backbones, or extra training data, our ranking can be higher.
+This is a Pytorch implementation of our NeurIPS 2023 Spotlight paper: [A Unified Generalization Analysis of Re-Weighting and Logit-Adjustment for Imbalanced Learning](https://arxiv.org/abs/2310.04752). We list the ranking of our method as follows. If we ignore the ones with ensemble, non-standard backbones, or extra training data, our ranking can be higher (4, 3, 1, 2 for `CIFAR-100-LT $\rho=100$`, `CIFAR-100-LT $\rho=10$`, `CIFAR-10-LT $\rho=100$`, `CIFAR-10-LT $\rho=10$`, respectively, up to 2023.12.1).
 
 [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/a-unified-generalization-analysis-of-re/long-tail-learning-on-cifar-100-lt-r-100)](https://paperswithcode.com/sota/long-tail-learning-on-cifar-100-lt-r-100?p=a-unified-generalization-analysis-of-re) [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/a-unified-generalization-analysis-of-re/long-tail-learning-on-cifar-100-lt-r-10)](https://paperswithcode.com/sota/long-tail-learning-on-cifar-100-lt-r-10?p=a-unified-generalization-analysis-of-re)
 	
