@@ -1,11 +1,7 @@
 # A Unified Generalization Analysis of Re-Weighting and Logit-Adjustment for Imbalanced Learning
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/a-unified-generalization-analysis-of-re/long-tail-learning-on-cifar-100-lt-r-100)](https://paperswithcode.com/sota/long-tail-learning-on-cifar-100-lt-r-100?p=a-unified-generalization-analysis-of-re)
-
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/a-unified-generalization-analysis-of-re/long-tail-learning-on-cifar-100-lt-r-10)](https://paperswithcode.com/sota/long-tail-learning-on-cifar-100-lt-r-10?p=a-unified-generalization-analysis-of-re)
+[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/a-unified-generalization-analysis-of-re/long-tail-learning-on-cifar-100-lt-r-100)](https://paperswithcode.com/sota/long-tail-learning-on-cifar-100-lt-r-100?p=a-unified-generalization-analysis-of-re) [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/a-unified-generalization-analysis-of-re/long-tail-learning-on-cifar-100-lt-r-10)](https://paperswithcode.com/sota/long-tail-learning-on-cifar-100-lt-r-10?p=a-unified-generalization-analysis-of-re)
 	
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/a-unified-generalization-analysis-of-re/long-tail-learning-on-cifar-10-lt-r-100)](https://paperswithcode.com/sota/long-tail-learning-on-cifar-10-lt-r-100?p=a-unified-generalization-analysis-of-re)
-
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/a-unified-generalization-analysis-of-re/long-tail-learning-on-cifar-10-lt-r-10)](https://paperswithcode.com/sota/long-tail-learning-on-cifar-10-lt-r-10?p=a-unified-generalization-analysis-of-re)
+[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/a-unified-generalization-analysis-of-re/long-tail-learning-on-cifar-10-lt-r-100)](https://paperswithcode.com/sota/long-tail-learning-on-cifar-10-lt-r-100?p=a-unified-generalization-analysis-of-re) [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/a-unified-generalization-analysis-of-re/long-tail-learning-on-cifar-10-lt-r-10)](https://paperswithcode.com/sota/long-tail-learning-on-cifar-10-lt-r-10?p=a-unified-generalization-analysis-of-re)
 
 This is a Pytorch implementation of our NeurIPS 2023 Spotlight paper: [A Unified Generalization Analysis of Re-Weighting and Logit-Adjustment for Imbalanced Learning](https://arxiv.org/abs/2310.04752).
 
