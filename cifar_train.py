@@ -276,7 +276,10 @@ def train(train_loader, model, criterion, optimizer, epoch, args, log):
 
         # compute output
         output = model(input)
-        loss = criterion(output, target)
+        if args.loss_type == 'VS' and '-T' in args.train_rule and epoch + 1 > args.t_reweight:
+            loss = criterion(output, target, False)
+        else:
+            loss = criterion(output, target)
 
         optimizer.zero_grad()
         loss.backward()
