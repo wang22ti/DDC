@@ -88,5 +88,6 @@ Pleas refer to the `bash_script.sh` in the root folder, where the scrpts can rep
     author = {Zitai Wang and  Qianqian Xu and Zhiyong Yang and Yuan He and Xiaochun Cao and Qingming Huang},
     booktitle = {Annual Conference on Neural Information Processing Systems},
     year = {2023},
+    pages = {48417--48430}
 }
 ```
