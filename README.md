@@ -1,8 +1,10 @@
 # A Unified Perspective for Loss-Oriented Imbalanced Learning via Localization
 
+[![arXiv](https://img.shields.io/badge/arXiv-2310.04752-b31b1b.svg)](https://arxiv.org/abs/2310.04752)
+
 This is a Pytorch implementation of our paper: 
 
-- **Journal Version (TPAMI 2026):** Zitai Wang, Qianqian Xu, Zhiyong Yang, Zhikang Xu, Linchao Zhang, Xiaochun Cao, Qingming Huang. [A Unified Perspective for Loss-Oriented Imbalanced Learning via Localization](https://arxiv.org/abs/2310.04752v2). IEEE Transactions on Pattern Analysis and Machine Intelligence (TPAMI, IF: 18.6), 48(1): 639-656, Jan. 2026.
+- **Journal Version (TPAMI 2026):** Zitai Wang, Qianqian Xu, Zhiyong Yang, Zhikang Xu, Linchao Zhang, Xiaochun Cao, Qingming Huang. A Unified Perspective for Loss-Oriented Imbalanced Learning via Localization. IEEE Transactions on Pattern Analysis and Machine Intelligence (TPAMI, IF: 18.6), 48(1): 639-656, Jan. 2026.
 
 - **Conference Version (NeurIPS 2023 Spotlight):** Zitai Wang, Qianqian Xu, Zhiyong Yang, Yuan He, Xiaochun Cao, Qingming Huang. A Unified Generalization Analysis of Re-Weighting and Logit-Adjustment for Imbalanced Learning. Annual Conference on Neural Information Processing Systems (NeurIPS), 2023.
 
