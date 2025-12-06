@@ -65,8 +65,7 @@ parser.add_argument('--wd', '--weight-decay', default=2e-4, type=float,
 parser.add_argument('--tro', default=1.0, type=float, metavar='T', help='tro')
 parser.add_argument('--gamma', default=0.0, type=float, help='VS hyperparameter')
 parser.add_argument('--tau', default=0.0, type=float, help='VS hyperparameter')
-parser.add_argument('--kappa_multi', default=1.0, type=float, help='CVS kappa_multi hyperparameter')
-parser.add_argument('--kappa_add', default=1.0, type=float, help='CVS kappa_add hyperparameter')
+parser.add_argument('--min_scale_factor', default=0.1, type=float, help='CVS min scale factor')
 parser.add_argument('--rho', nargs='+',  type=float, default=[0.0, 0.0])
 parser.add_argument('--randaug', default=0, type=int)
 
@@ -255,13 +254,11 @@ def main_worker(args):
                 epoch_idx=epoch,
                 drw_epoch=args.t_reweight,
                 n_bins=20,
-                min_scale_factor=getattr(args, 'cvs_kappa_multi', 0.1),
-                max_iter=200,
-                lr=0.01
+                min_scale_factor=args.min_scale_factor
             )
         
         # evaluate on validation set
-        acc1 = validate(val_loader, model, criterion, epoch, args, log_testing, cvs_manager)
+        acc1 = validate(val_loader, model, epoch, args, log_testing)
         
         # remember best acc@1 and save checkpoint
         is_best = acc1 > best_acc1
@@ -363,9 +360,8 @@ def train(train_loader, model, criterion, optimizer, epoch, args, log, cvs_manag
             log.write(output + '\n')
             log.flush()
 
-def validate(val_loader, model, criterion, epoch, args, log=None, flag='val', cvs_manager=None):
+def validate(val_loader, model, epoch, args, log=None, flag='val'):
     batch_time = AverageMeter('Time', ':6.3f')
-    losses = AverageMeter('Loss', ':.4e')
     top1 = AverageMeter('Acc@1', ':6.2f')
     top5 = AverageMeter('Acc@5', ':6.2f')
     
@@ -382,20 +378,9 @@ def validate(val_loader, model, criterion, epoch, args, log=None, flag='val', cv
 
             # compute output
             output = model(input)
-            if args.loss_type == 'CVS' and cvs_manager is not None:
-                # 使用动态计算的kappa参数
-                if epoch < args.t_reweight:
-                    kappa_multi = cvs_manager.get_kappa_multi()
-                    loss = criterion(output, target, 0, kappa_multi, 0)
-                else:
-                    kappa_add = cvs_manager.get_kappa_add()
-                    loss = criterion(output, target, args.tro, 0, kappa_add)
-            else:
-                loss = criterion(output, target, False) if '-T' in args.train_rule and epoch + 1 > args.t_reweight else criterion(output, target)
 
-            # measure accuracy and record loss
+            # measure accuracy
             acc1, acc5 = accuracy(output, target, topk=(1, 5))
-            losses.update(loss.item(), input.size(0))
             top1.update(acc1[0], input.size(0))
             top5.update(acc5[0], input.size(0))
 
@@ -410,10 +395,9 @@ def validate(val_loader, model, criterion, epoch, args, log=None, flag='val', cv
             if i % args.print_freq == 0:
                 output = ('Test: [{0}/{1}]\t'
                           'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                          'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                           'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
                           'Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
-                    i, len(val_loader), batch_time=batch_time, loss=losses,
+                    i, len(val_loader), batch_time=batch_time,
                     top1=top1, top5=top5))
                 print(output)
         cf = confusion_matrix(all_targets, all_preds).astype(float)
@@ -421,7 +405,7 @@ def validate(val_loader, model, criterion, epoch, args, log=None, flag='val', cv
         cls_hit = np.diag(cf)
         cls_acc = cls_hit / cls_cnt
 
-        output = ('{flag} Results: Prec@1 {top1.avg:.3f} Prec@5 {top5.avg:.3f} Loss {loss.avg:.5f}'.format(flag=flag, top1=top1, top5=top5, loss=losses))
+        output = ('{flag} Results: Prec@1 {top1.avg:.3f} Prec@5 {top5.avg:.3f}'.format(flag=flag, top1=top1, top5=top5))
         out_cls_acc = '%s Class Accuracy: %s'%(flag,(np.array2string(cls_acc, separator=',', formatter={'float_kind':lambda x: "%.3f" % x})))
         print(output, out_cls_acc, sep='\n')
         if log is not None:

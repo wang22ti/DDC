@@ -2,7 +2,6 @@
 CVS Manager - 管理CVS损失函数的动态参数计算
 """
 import torch
-import numpy as np
 from collections import deque
 
 
@@ -152,17 +151,13 @@ class CVSScalingManager:
         if non_empty_classes > 0:
             print(f"  平均每类样本数: {total_samples / non_empty_classes:.1f}")
     
-    def fit_scaling_factors(self, n_bins=20, min_scale_factor=0.1, max_iter=1000, 
-                          lr=0.01, use_logits=True):
+    def fit_scaling_factors(self, n_bins=20, min_scale_factor=0.1):
         """
-        拟合类别缩放因子
+        拟合类别缩放因子，使用最小二乘法拟合Confidence-Accuracy斜率
         
         Args:
-            n_bins (int): ECE计算的bin数量
+            n_bins (int): bin的数量
             min_scale_factor (float): 最小缩放因子
-            max_iter (int): 最大迭代次数
-            lr (float): 学习率
-            use_logits (bool): True使用logits模式（替换kappa_multi），False使用softmax模式（替换kappa_add）
         
         Returns:
             torch.Tensor: 类别缩放因子
@@ -177,102 +172,79 @@ class CVSScalingManager:
         logits = logits.to(self.device)
         labels = labels.to(self.device)
         
-        # 初始化缩放因子
-        scale_factors = torch.ones(self.num_classes, device=self.device, requires_grad=True)
-        optimizer = torch.optim.Adam([scale_factors], lr=lr)
+        # 计算概率和预测
+        probs = torch.softmax(logits, dim=1)
+        preds = torch.argmax(probs, dim=1)
         
-        mode_name = "logits" if use_logits else "softmax"
-        print(f"[CVSManager] 开始拟合{mode_name}模式缩放因子...")
+        scale_factors = torch.ones(self.num_classes, device=self.device)
         
-        best_ece = float('inf')
-        best_scale_factors = scale_factors.clone().detach()
-        patience = 50
-        no_improve_count = 0
+        print(f"[CVSManager] 开始计算缩放因子 (Least Squares Slope Fitting)...")
         
-        for iter_idx in range(max_iter):
-            optimizer.zero_grad()
+        for c in range(self.num_classes):
+            # 找到预测为类别 c 的样本
+            # 注意：这里我们关注的是模型对类别 c 的预测置信度与实际准确率的关系
+            mask = preds == c
             
-            # 应用缩放因子
-            if use_logits:
-                # Logits模式：直接缩放logits
-                scaled_logits = logits * scale_factors.unsqueeze(0)
-            else:
-                # Softmax模式：在softmax之后调整
-                probs = torch.softmax(logits, dim=1)
-                scaled_logits = torch.log(probs * scale_factors.unsqueeze(0) + 1e-10)
+            # 如果样本太少，保持默认值 1.0
+            if mask.sum() < 10:
+                continue
+                
+            class_conf = probs[mask, c]
+            class_acc = (labels[mask] == c).float()
             
-            # 计算ECE
-            ece = self._compute_ece(scaled_logits, labels, n_bins)
+            # 分 bin 计算 Avg Conf 和 Avg Acc
+            bin_boundaries = torch.linspace(0, 1, n_bins + 1, device=self.device)
+            bin_confs = []
+            bin_accs = []
+            bin_weights = []
             
-            # 反向传播
-            ece.backward()
-            optimizer.step()
+            for i in range(n_bins):
+                bin_lower = bin_boundaries[i]
+                bin_upper = bin_boundaries[i + 1]
+                
+                in_bin = (class_conf > bin_lower) & (class_conf <= bin_upper)
+                if in_bin.sum() > 0:
+                    avg_conf = class_conf[in_bin].mean()
+                    avg_acc = class_acc[in_bin].mean()
+                    weight = in_bin.sum().float()
+                    
+                    bin_confs.append(avg_conf)
+                    bin_accs.append(avg_acc)
+                    bin_weights.append(weight)
             
-            # 限制缩放因子范围
-            with torch.no_grad():
-                scale_factors.clamp_(min=min_scale_factor, max=10.0)
+            if len(bin_confs) < 2:
+                continue
+                
+            # 转换为 tensor
+            bin_confs = torch.stack(bin_confs)
+            bin_accs = torch.stack(bin_accs)
+            bin_weights = torch.stack(bin_weights)
             
-            # 记录最佳结果
-            current_ece = ece.item()
-            if current_ece < best_ece:
-                best_ece = current_ece
-                best_scale_factors = scale_factors.clone().detach()
-                no_improve_count = 0
-            else:
-                no_improve_count += 1
+            # 加权最小二乘法拟合 Acc = beta * Conf
+            # 目标是最小化 sum(w * (Acc - beta * Conf)^2)
+            # 解析解: beta = sum(w * Conf * Acc) / sum(w * Conf^2)
+            numerator = torch.sum(bin_weights * bin_confs * bin_accs)
+            denominator = torch.sum(bin_weights * bin_confs ** 2)
             
-            # 早停
-            if no_improve_count >= patience:
-                print(f"[CVSManager] 早停于迭代 {iter_idx}, 最佳ECE: {best_ece:.6f}")
-                break
-            
-            # 打印进度
-            if (iter_idx + 1) % 100 == 0:
-                print(f"[CVSManager] 迭代 {iter_idx+1}/{max_iter}, ECE: {current_ece:.6f}, "
-                      f"范围: [{scale_factors.min().item():.4f}, {scale_factors.max().item():.4f}]")
+            if denominator > 1e-6:
+                beta = numerator / denominator
+                # kappa = 1 / beta
+                # 如果 beta < 1 (Overconfident), kappa > 1, 降低 confidence
+                # 如果 beta > 1 (Underconfident), kappa < 1, 提高 confidence
+                kappa = 1.0 / (beta + 1e-6)
+                
+                # 限制范围
+                kappa = torch.clamp(kappa, min=min_scale_factor, max=10.0)
+                scale_factors[c] = kappa
         
-        print(f"[CVSManager] {mode_name}模式拟合完成, 最终ECE: {best_ece:.6f}")
-        print(f"[CVSManager] 缩放因子范围: [{best_scale_factors.min().item():.4f}, {best_scale_factors.max().item():.4f}]")
+        print(f"[CVSManager] 拟合完成")
+        print(f"[CVSManager] 缩放因子范围: [{scale_factors.min().item():.4f}, {scale_factors.max().item():.4f}]")
         
-        return best_scale_factors
+        return scale_factors
     
-    def _compute_ece(self, logits, labels, n_bins=20):
-        """
-        计算Expected Calibration Error (ECE)
-        
-        Args:
-            logits (torch.Tensor): 模型输出的logits
-            labels (torch.Tensor): 真实标签
-            n_bins (int): bin的数量
-        
-        Returns:
-            torch.Tensor: ECE值
-        """
-        softmax_probs = torch.softmax(logits, dim=1)
-        confidences, predictions = torch.max(softmax_probs, dim=1)
-        accuracies = predictions.eq(labels)
-        
-        # 创建bins
-        bin_boundaries = torch.linspace(0, 1, n_bins + 1, device=self.device)
-        ece = torch.tensor(0.0, device=self.device)
-        
-        for i in range(n_bins):
-            bin_lower = bin_boundaries[i]
-            bin_upper = bin_boundaries[i + 1]
-            
-            # 找到在当前bin中的样本
-            in_bin = (confidences > bin_lower) & (confidences <= bin_upper)
-            prop_in_bin = in_bin.float().mean()
-            
-            if prop_in_bin.item() > 0:
-                accuracy_in_bin = accuracies[in_bin].float().mean()
-                avg_confidence_in_bin = confidences[in_bin].mean()
-                ece += torch.abs(avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin
-        
-        return ece
     
     def update_scaling_factors(self, epoch_idx, drw_epoch, n_bins=20, 
-                              min_scale_factor=0.1, max_iter=200, lr=0.01):
+                              min_scale_factor=0.1):
         """
         在训练过程中更新缩放因子
         
@@ -281,26 +253,18 @@ class CVSScalingManager:
             drw_epoch (int): DRW切换的epoch
             n_bins (int): ECE计算的bin数量
             min_scale_factor (float): 最小缩放因子
-            max_iter (int): 最大迭代次数
-            lr (float): 学习率
         """
         if epoch_idx < drw_epoch:
             # 早期阶段：使用logits模式
             self.class_scale_factors_logits = self.fit_scaling_factors(
                 n_bins=n_bins,
-                min_scale_factor=min_scale_factor,
-                max_iter=max_iter,
-                lr=lr,
-                use_logits=True
+                min_scale_factor=min_scale_factor
             )
         else:
             # 后期阶段：使用softmax模式
             self.class_scale_factors_softmax = self.fit_scaling_factors(
                 n_bins=n_bins,
-                min_scale_factor=min_scale_factor,
-                max_iter=max_iter,
-                lr=lr,
-                use_logits=False
+                min_scale_factor=min_scale_factor
             )
     
     def get_kappa_multi(self):
