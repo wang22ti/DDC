@@ -15,9 +15,10 @@ import models
 from sklearn.metrics import confusion_matrix
 from utils.utils import *
 from datasets.imbalance_cifar import IMBALANCECIFAR10, IMBALANCECIFAR100
-from losses import LDAMLoss, FocalLoss, VSLoss
+from losses import LDAMLoss, FocalLoss, VSLoss, CVSLoss
 from utils.sam import SAM
 from utils.autoaug import CIFAR10Policy, Cutout
+from utils.cvs_manager import CVSScalingManager
 
 model_names = sorted(name for name in models.__dict__
     if name.islower() and not name.startswith("__")
@@ -64,6 +65,8 @@ parser.add_argument('--wd', '--weight-decay', default=2e-4, type=float,
 parser.add_argument('--tro', default=1.0, type=float, metavar='T', help='tro')
 parser.add_argument('--gamma', default=0.0, type=float, help='VS hyperparameter')
 parser.add_argument('--tau', default=0.0, type=float, help='VS hyperparameter')
+parser.add_argument('--kappa_multi', default=1.0, type=float, help='CVS kappa_multi hyperparameter')
+parser.add_argument('--kappa_add', default=1.0, type=float, help='CVS kappa_add hyperparameter')
 parser.add_argument('--rho', nargs='+',  type=float, default=[0.0, 0.0])
 parser.add_argument('--randaug', default=0, type=int)
 
@@ -162,6 +165,16 @@ def main_worker(args):
     print('cls num list:', cls_num_list)
     args.cls_num_list = cls_num_list
     
+    # 初始化CVS缩放管理器（如果使用CVS损失）
+    cvs_manager = None
+    if args.loss_type == 'CVS':
+        cvs_manager = CVSScalingManager(
+            num_classes=num_classes,
+            cls_num_list=cls_num_list,
+            samples_per_class=getattr(args, 'memory_bank_size', 1000),
+            device='cuda' if args.gpu is not None else 'cpu'
+        )
+    
     train_sampler = None
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
@@ -226,15 +239,29 @@ def main_worker(args):
         elif args.loss_type == 'VS':
             criterion = VSLoss(cls_num_list=args.cls_num_list, tau=args.tau, gamma=args.gamma,
                                weight=per_cls_weights).cuda(args.gpu)
+        elif args.loss_type == 'CVS':
+            criterion = CVSLoss(cls_num_list=torch.FloatTensor(args.cls_num_list).cuda(args.gpu),
+                                gamma=args.gamma, tau=args.tau).cuda(args.gpu)
         else:
             warnings.warn('Loss type is not listed')
             return
 
         # train for one epoch
-        train(train_loader, model, criterion, optimizer, epoch, args, log_training)
+        train(train_loader, model, criterion, optimizer, epoch, args, log_training, cvs_manager)
+        
+        # 如果使用CVS，在每个epoch结束后更新缩放因子
+        if args.loss_type == 'CVS' and cvs_manager is not None:
+            cvs_manager.update_scaling_factors(
+                epoch_idx=epoch,
+                drw_epoch=args.t_reweight,
+                n_bins=20,
+                min_scale_factor=getattr(args, 'cvs_kappa_multi', 0.1),
+                max_iter=200,
+                lr=0.01
+            )
         
         # evaluate on validation set
-        acc1 = validate(val_loader, model, criterion, epoch, args, log_testing)
+        acc1 = validate(val_loader, model, criterion, epoch, args, log_testing, cvs_manager)
         
         # remember best acc@1 and save checkpoint
         is_best = acc1 > best_acc1
@@ -254,7 +281,7 @@ def main_worker(args):
         }, is_best, args.save_freq)
 
 
-def train(train_loader, model, criterion, optimizer, epoch, args, log):
+def train(train_loader, model, criterion, optimizer, epoch, args, log, cvs_manager=None):
     batch_time = AverageMeter('Time', ':6.3f')
     data_time = AverageMeter('Data', ':6.3f')
     losses = AverageMeter('Loss', ':.4e')
@@ -275,9 +302,21 @@ def train(train_loader, model, criterion, optimizer, epoch, args, log):
 
         # compute output
         output = model(input)
+        
+        # 如果使用CVS，更新memory bank
+        if args.loss_type == 'CVS' and cvs_manager is not None:
+            cvs_manager.update_memory_bank(output.detach(), target)
 
         if args.loss_type == 'VS' and '-T' in args.train_rule and epoch + 1 > args.t_reweight:
             loss = criterion(output, target, False)
+        elif args.loss_type == 'CVS' and cvs_manager is not None:
+            # 使用动态计算的kappa参数 - 第一次前向传播
+            if epoch < args.t_reweight:
+                kappa_multi = cvs_manager.get_kappa_multi()
+                loss = criterion(output, target, 0, kappa_multi, 0)
+            else:
+                kappa_add = cvs_manager.get_kappa_add()
+                loss = criterion(output, target, args.tro, 0, kappa_add)
         else:
             loss = criterion(output, target)
         optimizer.zero_grad()
@@ -287,6 +326,14 @@ def train(train_loader, model, criterion, optimizer, epoch, args, log):
         output = model(input)
         if args.loss_type == 'VS' and '-T' in args.train_rule and epoch + 1 > args.t_reweight:
             loss = criterion(output, target, False)
+        elif args.loss_type == 'CVS' and cvs_manager is not None:
+            # 使用动态计算的kappa参数 - 第二次前向传播
+            if epoch < args.t_reweight:
+                kappa_multi = cvs_manager.get_kappa_multi()
+                loss = criterion(output, target, 0, kappa_multi, 0)
+            else:
+                kappa_add = cvs_manager.get_kappa_add()
+                loss = criterion(output, target, args.tro, 0, kappa_add)
         else:
             loss = criterion(output, target)
         loss.backward()
@@ -316,7 +363,7 @@ def train(train_loader, model, criterion, optimizer, epoch, args, log):
             log.write(output + '\n')
             log.flush()
 
-def validate(val_loader, model, criterion, epoch, args, log=None, flag='val'):
+def validate(val_loader, model, criterion, epoch, args, log=None, flag='val', cvs_manager=None):
     batch_time = AverageMeter('Time', ':6.3f')
     losses = AverageMeter('Loss', ':.4e')
     top1 = AverageMeter('Acc@1', ':6.2f')
@@ -335,7 +382,16 @@ def validate(val_loader, model, criterion, epoch, args, log=None, flag='val'):
 
             # compute output
             output = model(input)
-            loss = criterion(output, target, False) if '-T' in args.train_rule and epoch + 1 > args.t_reweight else criterion(output, target)
+            if args.loss_type == 'CVS' and cvs_manager is not None:
+                # 使用动态计算的kappa参数
+                if epoch < args.t_reweight:
+                    kappa_multi = cvs_manager.get_kappa_multi()
+                    loss = criterion(output, target, 0, kappa_multi, 0)
+                else:
+                    kappa_add = cvs_manager.get_kappa_add()
+                    loss = criterion(output, target, args.tro, 0, kappa_add)
+            else:
+                loss = criterion(output, target, False) if '-T' in args.train_rule and epoch + 1 > args.t_reweight else criterion(output, target)
 
             # measure accuracy and record loss
             acc1, acc5 = accuracy(output, target, topk=(1, 5))

@@ -84,3 +84,38 @@ class VSLoss(nn.Module):
         output = x / self.Delta_list + self.iota_list if use_multiplicative else x + self.iota_list
 
         return F.cross_entropy(output, target, weight=self.weight)
+
+class CVSLoss(nn.Module):
+
+    def __init__(self, cls_num_list, gamma=0.0, tau=1.0):
+        super(CVSLoss, self).__init__()
+        self.cls_probs = cls_num_list / torch.sum(cls_num_list)
+        self.gamma, self.tau = gamma, tau
+
+    def forward(self, x, target, tro, kappa_multi, kappa_add):
+        weight = self.cls_probs ** (- tro) if tro != 0 else None
+        output = x  # 初始化输出为原始logits
+        
+        # 处理乘性缩放：kappa_multi可以是标量或张量
+        if isinstance(kappa_multi, torch.Tensor):
+            # 如果是张量，确保不包含0值以避免除零
+            if torch.any(kappa_multi != 0):
+                # 将kappa_multi扩展到batch维度: (num_classes,) -> (batch_size, num_classes)
+                kappa_multi_expanded = kappa_multi.unsqueeze(0).expand_as(x)
+                output = output * (self.cls_probs.unsqueeze(0) ** self.gamma) / kappa_multi_expanded
+        elif kappa_multi != 0:
+            # 如果是非零标量，使用原来的逻辑
+            output = output * (self.cls_probs ** self.gamma) / kappa_multi
+        
+        # 处理加性调整：kappa_add可以是标量或张量
+        if isinstance(kappa_add, torch.Tensor):
+            # 如果是张量，确保不包含0值以避免除零
+            if torch.any(kappa_add != 0):
+                # 将kappa_add扩展到batch维度
+                kappa_add_expanded = kappa_add.unsqueeze(0).expand_as(x)
+                output = output + self.tau * torch.log(self.cls_probs.unsqueeze(0) / kappa_add_expanded)
+        elif kappa_add != 0:
+            # 如果是非零标量，使用原来的逻辑
+            output = output + self.tau * torch.log(self.cls_probs / kappa_add)
+        
+        return F.cross_entropy(output, target, weight=weight)

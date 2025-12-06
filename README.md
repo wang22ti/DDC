@@ -1,12 +1,10 @@
-# A Unified Generalization Analysis of Re-Weighting and Logit-Adjustment for Imbalanced Learning
+# A Unified Perspective for Loss-Oriented Imbalanced Learning via Localization
 
-This is a Pytorch implementation of our NeurIPS 2023 Spotlight paper: [A Unified Generalization Analysis of Re-Weighting and Logit-Adjustment for Imbalanced Learning](https://arxiv.org/abs/2310.04752). We list the ranking of our method as follows. If we ignore the ones with ensemble, non-standard backbones, or extra training data, our ranking can be higher (**4, 3, 1, 2 for CIFAR-100-LT $\rho=100$, CIFAR-100-LT $\rho=10$, CIFAR-10-LT $\rho=100$, CIFAR-10-LT $\rho=10$**, respectively, up to 2023.12.1).
+This is a Pytorch implementation of our paper: 
 
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/a-unified-generalization-analysis-of-re/long-tail-learning-on-cifar-100-lt-r-100)](https://paperswithcode.com/sota/long-tail-learning-on-cifar-100-lt-r-100?p=a-unified-generalization-analysis-of-re) [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/a-unified-generalization-analysis-of-re/long-tail-learning-on-cifar-100-lt-r-10)](https://paperswithcode.com/sota/long-tail-learning-on-cifar-100-lt-r-10?p=a-unified-generalization-analysis-of-re)
-	
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/a-unified-generalization-analysis-of-re/long-tail-learning-on-cifar-10-lt-r-100)](https://paperswithcode.com/sota/long-tail-learning-on-cifar-10-lt-r-100?p=a-unified-generalization-analysis-of-re) [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/a-unified-generalization-analysis-of-re/long-tail-learning-on-cifar-10-lt-r-10)](https://paperswithcode.com/sota/long-tail-learning-on-cifar-10-lt-r-10?p=a-unified-generalization-analysis-of-re)
+- **Journal Version (TPAMI 2026):** Zitai Wang, Qianqian Xu, Zhiyong Yang, Zhikang Xu, Linchao Zhang, Xiaochun Cao, Qingming Huang. [A Unified Perspective for Loss-Oriented Imbalanced Learning via Localization](https://arxiv.org/abs/2310.04752v2). IEEE Transactions on Pattern Analysis and Machine Intelligence (TPAMI, IF: 18.6), 48(1): 639-656, Jan. 2026.
 
-> **Abstract:** Real-world datasets are typically imbalanced in the sense that only a few classes have numerous samples, while many classes are associated with only a few samples. As a result, a naïve ERM learning process will be biased towards the majority classes, making it difficult to generalize to the minority classes. To address this issue, one simple but effective approach is to modify the loss function to emphasize the learning on minority classes, such as re-weighting the losses or adjusting the logits via class-dependent terms. However, existing generalization analysis of such losses is still coarse-grained and fragmented, failing to explain some empirical results. To bridge this gap, we propose a novel technique named data-dependent contraction to capture how these modified losses handle different classes. On top of this technique, a fine-grained generalization bound is established for imbalanced learning, which helps reveal the mystery of re-weighting and logit-adjustment in a unified manner. Furthermore, a principled learning algorithm is developed based on the theoretical insights. Finally, the empirical results on benchmark datasets not only validate the theoretical results but also demonstrate the effectiveness of the proposed method.
+- **Conference Version (NeurIPS 2023 Spotlight):** Zitai Wang, Qianqian Xu, Zhiyong Yang, Yuan He, Xiaochun Cao, Qingming Huang. A Unified Generalization Analysis of Re-Weighting and Logit-Adjustment for Imbalanced Learning. Annual Conference on Neural Information Processing Systems (NeurIPS), 2023.
 
 Our codes are based on the repositories [Escaping Saddle Points for Effective Generalization on Class-Imbalanced Data](https://github.com/val-iisc/saddle-longtail). We have improved the reproducibility, and the results might be sightly different from those reported in the paper.
 
@@ -18,7 +16,7 @@ Please refer to the `requirements.yml` in the root folder.
 
 Pleas refer to the `bash_script.sh` in the root folder, where the scrpts can reproduce the results under the setting `400 Epochs with tuned wd, SAM, and RandAug` (see below).
 
-## Results
+## Results (Conference Version)
 
 ### CIFAR-100
 
@@ -80,12 +78,26 @@ Pleas refer to the `bash_script.sh` in the root folder, where the scrpts can rep
 | VS | 86.29 ± 0.13 | 91.75 ± 0.09 | 85.04 ± 0.16 | 91.68 ± 0.08 |
 | VS + ADRW + TLA (Ours) | **86.42 ± 0.10** | **91.82 ± 0.16** | **85.55 ± 0.22**  | **91.80 ± 0.04** |
 
+## Results (Journal Version)
+
+Please refer to the journal version of our paper for more comprehensive experiments.
+
 ## Citation
 
 ```
-@InProceedings{ddc,
+@article{wang2026unified,
+    title = {A Unified Perspective for Loss-Oriented Imbalanced Learning via Localization},
+    author = {Zitai Wang and Qianqian Xu and Zhiyong Yang and Zhikang Xu and Linchao Zhang and Xiaochun Cao and Qingming Huang},
+    journal = {IEEE Transactions on Pattern Analysis and Machine Intelligence},
+    volume = {48},
+    number = {1},
+    pages = {639--656},
+    year = {2026},
+}
+
+@InProceedings{wang2023unified,
     title = {A Unified Generalization Analysis of Re-Weighting and Logit-Adjustment for Imbalanced Learning},
-    author = {Zitai Wang and  Qianqian Xu and Zhiyong Yang and Yuan He and Xiaochun Cao and Qingming Huang},
+    author = {Zitai Wang and Qianqian Xu and Zhiyong Yang and Yuan He and Xiaochun Cao and Qingming Huang},
     booktitle = {Annual Conference on Neural Information Processing Systems},
     year = {2023},
     pages = {48417--48430}
