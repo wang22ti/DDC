@@ -151,13 +151,14 @@ class CVSScalingManager:
         if non_empty_classes > 0:
             print(f"  平均每类样本数: {total_samples / non_empty_classes:.1f}")
     
-    def fit_scaling_factors(self, n_bins=20, min_scale_factor=0.1):
+    def fit_scaling_factors(self, n_bins=20, min_scale_factor=0.1, max_scale_factor=1.0):
         """
         拟合类别缩放因子，使用最小二乘法拟合Confidence-Accuracy斜率
         
         Args:
             n_bins (int): bin的数量
             min_scale_factor (float): 最小缩放因子
+            max_scale_factor (float): 最大缩放因子
         
         Returns:
             torch.Tensor: 类别缩放因子
@@ -234,7 +235,8 @@ class CVSScalingManager:
                 kappa = 1.0 / (beta + 1e-6)
                 
                 # 限制范围
-                kappa = torch.clamp(kappa, min=min_scale_factor, max=10.0)
+                # 限制最大缩放因子，防止过度调整
+                kappa = torch.clamp(kappa, min=min_scale_factor, max=max_scale_factor)
                 scale_factors[c] = kappa
         
         print(f"[CVSManager] 拟合完成")
@@ -244,7 +246,7 @@ class CVSScalingManager:
     
     
     def update_scaling_factors(self, epoch_idx, drw_epoch, n_bins=20, 
-                              min_scale_factor=0.1):
+                              min_scale_factor=0.1, max_scale_factor=1.0, momentum=0.9):
         """
         在训练过程中更新缩放因子
         
@@ -253,19 +255,26 @@ class CVSScalingManager:
             drw_epoch (int): DRW切换的epoch
             n_bins (int): ECE计算的bin数量
             min_scale_factor (float): 最小缩放因子
+            max_scale_factor (float): 最大缩放因子
+            momentum (float): 动量系数，用于平滑更新
         """
         if epoch_idx < drw_epoch:
             # 早期阶段：使用logits模式
-            self.class_scale_factors_logits = self.fit_scaling_factors(
+            new_factors = self.fit_scaling_factors(
                 n_bins=n_bins,
-                min_scale_factor=min_scale_factor
+                min_scale_factor=min_scale_factor,
+                max_scale_factor=max_scale_factor
             )
+            # 使用动量更新平滑参数变化
+            self.class_scale_factors_logits = momentum * self.class_scale_factors_logits + (1 - momentum) * new_factors
         else:
             # 后期阶段：使用softmax模式
-            self.class_scale_factors_softmax = self.fit_scaling_factors(
+            new_factors = self.fit_scaling_factors(
                 n_bins=n_bins,
-                min_scale_factor=min_scale_factor
+                min_scale_factor=min_scale_factor,
+                max_scale_factor=max_scale_factor
             )
+            self.class_scale_factors_softmax = momentum * self.class_scale_factors_softmax + (1 - momentum) * new_factors
     
     def get_kappa_multi(self):
         """获取当前的kappa_multi参数（logits模式的缩放因子）"""

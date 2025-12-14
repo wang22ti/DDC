@@ -1,0 +1,18 @@
+# Logs
+log_nosam/
+*.log
+
+# Datasets
+data/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+**/*.pyc
+**/__pycache__/
+
+# Grid search scripts and results
+grid_search_cvs.py
+analyze_results.py
+grid_search_analysis.csv

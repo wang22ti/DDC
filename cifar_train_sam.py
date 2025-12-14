@@ -66,6 +66,8 @@ parser.add_argument('--tro', default=1.0, type=float, metavar='T', help='tro')
 parser.add_argument('--gamma', default=0.0, type=float, help='VS hyperparameter')
 parser.add_argument('--tau', default=0.0, type=float, help='VS hyperparameter')
 parser.add_argument('--min_scale_factor', default=0.1, type=float, help='CVS min scale factor')
+parser.add_argument('--kappa_max', default=1.0, type=float, help='CVS max scale factor')
+parser.add_argument('--warmup_epochs', default=5, type=int, help='CVS warmup epochs')
 parser.add_argument('--rho', nargs='+',  type=float, default=[0.0, 0.0])
 parser.add_argument('--randaug', default=0, type=int)
 
@@ -77,7 +79,7 @@ def main():
     print(args)
 
     store_dir_list = [args.dataset, args.arch, args.loss_type, args.train_rule, args.imb_type, str(args.imb_factor), str(args.randaug)]
-    store_name_list = ['seed', str(args.seed), 'wd', '%.6f' % args.weight_decay, 'sam', str(args.rho), 'args', str((args.tro, args.gamma, args.tau))]
+    store_name_list = ['seed', str(args.seed), 'wd', '%.6f' % args.weight_decay, 'sam', str(args.rho), 'args', str((args.tro, args.gamma, args.tau, args.kappa_max, args.warmup_epochs, args.min_scale_factor))]
     store_dir = '_'.join(store_dir_list)
     args.store_name = '_'.join(store_name_list)
     args.store_name = os.path.join(store_dir, args.store_name)
@@ -254,7 +256,8 @@ def main_worker(args):
                 epoch_idx=epoch,
                 drw_epoch=args.t_reweight,
                 n_bins=20,
-                min_scale_factor=args.min_scale_factor
+                min_scale_factor=args.min_scale_factor,
+                max_scale_factor=args.kappa_max
             )
         
         # evaluate on validation set
@@ -309,7 +312,13 @@ def train(train_loader, model, criterion, optimizer, epoch, args, log, cvs_manag
         elif args.loss_type == 'CVS' and cvs_manager is not None:
             # 使用动态计算的kappa参数 - 第一次前向传播
             if epoch < args.t_reweight:
-                kappa_multi = cvs_manager.get_kappa_multi()
+                # 增加Warm-up阶段
+                if epoch < args.warmup_epochs:
+                    kappa_multi = 1.0
+                else:
+                    kappa_multi = cvs_manager.get_kappa_multi()
+                
+                # 保持加性项为0 (第一阶段不使用加性调整)
                 loss = criterion(output, target, 0, kappa_multi, 0)
             else:
                 kappa_add = cvs_manager.get_kappa_add()
@@ -326,7 +335,13 @@ def train(train_loader, model, criterion, optimizer, epoch, args, log, cvs_manag
         elif args.loss_type == 'CVS' and cvs_manager is not None:
             # 使用动态计算的kappa参数 - 第二次前向传播
             if epoch < args.t_reweight:
-                kappa_multi = cvs_manager.get_kappa_multi()
+                # 增加Warm-up阶段
+                if epoch < args.warmup_epochs:
+                    kappa_multi = 1.0
+                else:
+                    kappa_multi = cvs_manager.get_kappa_multi()
+                
+                # 保持加性项为0
                 loss = criterion(output, target, 0, kappa_multi, 0)
             else:
                 kappa_add = cvs_manager.get_kappa_add()
