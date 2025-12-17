@@ -63,8 +63,8 @@ parser.add_argument('--wd', '--weight-decay', default=2e-4, type=float,
 parser.add_argument('--tro', default=1.0, type=float, metavar='T', help='tro')
 parser.add_argument('--gamma', default=0.0, type=float, help='VS hyperparameter')
 parser.add_argument('--tau', default=0.0, type=float, help='VS hyperparameter')
-parser.add_argument('--min_scale_factor', default=0.1, type=float, help='CVS min scale factor')
-parser.add_argument('--kappa_max', default=1.0, type=float, help='CVS max scale factor')
+parser.add_argument('--min_scale', default=0.1, type=float, help='CVS min scale factor')
+parser.add_argument('--max_scale', default=1.0, type=float, help='CVS max scale factor')
 parser.add_argument('--warmup_epochs', default=5, type=int, help='CVS warmup epochs')
 parser.add_argument('--randaug', default=0, type=int)
 
@@ -76,7 +76,7 @@ def main():
     print(args)
 
     store_dir_list = [args.dataset, args.arch, args.loss_type, args.train_rule, args.imb_type, str(args.imb_factor), str(args.randaug)]
-    store_name_list = ['seed', str(args.seed), 'wd', '%.6f' % args.weight_decay, 'sam', '0', 'args', str((args.tro, args.gamma, args.tau, args.kappa_max, args.warmup_epochs, args.min_scale_factor))]
+    store_name_list = ['seed', str(args.seed), 'wd', '%.6f' % args.weight_decay, 'sam', '0', 'args', str((args.tro, args.gamma, args.tau, args.max_scale, args.warmup_epochs, args.min_scale))]
 
     store_dir = '_'.join(store_dir_list)
     args.store_name = '_'.join(store_name_list)
@@ -255,8 +255,8 @@ def main_worker(args):
                 epoch_idx=epoch,
                 drw_epoch=args.t_reweight,
                 n_bins=20,
-                min_scale_factor=args.min_scale_factor,
-                max_scale_factor=args.kappa_max
+                min_scale_factor=args.min_scale,
+                max_scale_factor=args.max_scale
             )
         
         # evaluate on validation set
